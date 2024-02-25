@@ -1,0 +1,162 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+#define MAX_EMPLOYEES 100
+
+// Employee structure
+struct Employee {
+    int id;
+    char name[50];
+    float salary;
+};
+
+// Function prototypes
+void addRecord(FILE *file);
+void displayRecord(FILE *file);
+void updateRecord(FILE *file);
+void deleteRecord(FILE *file);
+
+int main() {
+    FILE *file;
+    char choice;
+
+    // Open file in binary read/write mode
+    file = fopen("employees.dat", "rb+");
+    if (file == NULL) {
+        perror("Error opening file");
+        return 1;
+    }
+
+    // Menu for operations
+    while (1) {
+        printf("\nEmployee Record Management System\n");
+        printf("1. Add Record\n");
+        printf("2. Display Record\n");
+        printf("3. Update Record\n");
+        printf("4. Delete Record\n");
+        printf("5. Exit\n");
+        printf("Enter your choice: ");
+        scanf(" %c", &choice);
+
+        switch (choice) {
+            case '1':
+                addRecord(file);
+                break;
+            case '2':
+                displayRecord(file);
+                break;
+            case '3':
+                updateRecord(file);
+                break;
+            case '4':
+                deleteRecord(file);
+                break;
+            case '5':
+                fclose(file);
+                return 0;
+            default:
+                printf("Invalid choice! Please enter a valid option.\n");
+        }
+    }
+}
+
+// Add a record to the file
+void addRecord(FILE *file) {
+    struct Employee emp;
+    
+    // Move file pointer to end of file
+    fseek(file, 0, SEEK_END);
+    
+    printf("Enter employee ID: ");
+    scanf("%d", &emp.id);
+    printf("Enter employee name: ");
+    scanf("%s", emp.name);
+    printf("Enter employee salary: ");
+    scanf("%f", &emp.salary);
+    
+    // Write employee record to file
+    fwrite(&emp, sizeof(struct Employee), 1, file);
+    
+    printf("Record added successfully.\n");
+}
+
+// Display all records in the file
+void displayRecord(FILE *file) {
+    struct Employee emp;
+    
+    // Move file pointer to beginning of file
+    fseek(file, 0, SEEK_SET);
+    
+    printf("Employee Records:\n");
+    printf("ID\tName\tSalary\n");
+    while (fread(&emp, sizeof(struct Employee), 1, file)) {
+        printf("%d\t%s\t%.2f\n", emp.id, emp.name, emp.salary);
+    }
+}
+
+// Update a record in the file
+void updateRecord(FILE *file) {
+    struct Employee emp;
+    int id, found = 0;
+    
+    printf("Enter employee ID to update: ");
+    scanf("%d", &id);
+    
+    // Move file pointer to beginning of file
+    fseek(file, 0, SEEK_SET);
+    
+    while (fread(&emp, sizeof(struct Employee), 1, file)) {
+        if (emp.id == id) {
+            printf("Enter new name: ");
+            scanf("%s", emp.name);
+            printf("Enter new salary: ");
+            scanf("%f", &emp.salary);
+            fseek(file, -sizeof(struct Employee), SEEK_CUR); // Move file pointer back
+            fwrite(&emp, sizeof(struct Employee), 1, file); // Write updated record
+            found = 1;
+            printf("Record updated successfully.\n");
+            break;
+        }
+    }
+    
+    if (!found) {
+        printf("Record with ID %d not found.\n", id);
+    }
+}
+
+// Delete a record from the file
+void deleteRecord(FILE *file) {
+    struct Employee emp;
+    int id, found = 0;
+    
+    printf("Enter employee ID to delete: ");
+    scanf("%d", &id);
+    
+    // Move file pointer to beginning of file
+    fseek(file, 0, SEEK_SET);
+    
+    FILE *tempFile = fopen("temp.dat", "wb");
+    if (tempFile == NULL) {
+        perror("Error creating temporary file");
+        return;
+    }
+    
+    while (fread(&emp, sizeof(struct Employee), 1, file)) {
+        if (emp.id == id) {
+            found = 1;
+            printf("Record deleted successfully.\n");
+        } else {
+            fwrite(&emp, sizeof(struct Employee), 1, tempFile);
+        }
+    }
+    
+    fclose(file);
+    fclose(tempFile);
+    
+    remove("employees.dat");
+    rename("temp.dat", "employees.dat");
+    
+    if (!found) {
+        printf("Record with ID %d not found.\n", id);
+    }
+}
