@@ -1,0 +1,72 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <sys/stat.h>
+#include <dirent.h>
+
+int main() {
+    int fd; // File descriptor
+    off_t offset; // File offset
+    struct stat file_stat; // File information
+    DIR *dir; // Directory stream
+    struct dirent *entry; // Directory entry
+
+    // Open a file
+    fd = open("example.txt", O_RDONLY);
+    if (fd == -1) {
+        perror("open");
+        exit(EXIT_FAILURE);
+    }
+
+    // Use fcntl to set file status flags
+    int flags = fcntl(fd, F_GETFL);
+    if (flags == -1) {
+        perror("fcntl");
+        exit(EXIT_FAILURE);
+    }
+    printf("File status flags: %d\n", flags);
+
+    // Use lseek to move the file offset
+    offset = lseek(fd, 0, SEEK_END);
+    if (offset == -1) {
+        perror("lseek");
+        exit(EXIT_FAILURE);
+    }
+    printf("File size: %ld bytes\n", offset);
+
+    // Use fstat to get file information
+    if (fstat(fd, &file_stat) == -1) {
+        perror("fstat");
+        exit(EXIT_FAILURE);
+    }
+    printf("File permissions: %o\n", file_stat.st_mode & 0777);
+    printf("File inode number: %lu\n", file_stat.st_ino);
+
+    // Close the file
+    if (close(fd) == -1) {
+        perror("close");
+        exit(EXIT_FAILURE);
+    }
+
+    // Open a directory
+    dir = opendir(".");
+    if (dir == NULL) {
+        perror("opendir");
+        exit(EXIT_FAILURE);
+    }
+
+    // Read directory entries
+    printf("Directory listing:\n");
+    while ((entry = readdir(dir)) != NULL) {
+        printf("%s\n", entry->d_name);
+    }
+
+    // Close the directory
+    if (closedir(dir) == -1) {
+        perror("closedir");
+        exit(EXIT_FAILURE);
+    }
+
+    return 0;
+}
