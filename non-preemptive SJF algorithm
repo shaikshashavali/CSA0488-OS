@@ -1,0 +1,85 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <limits.h> // Include limits.h for INT_MAX
+
+// Structure to represent a process
+struct Process {
+    int processID;
+    int arrivalTime;
+    int burstTime;
+    int completionTime;
+};
+
+// Function to perform Non-Preemptive SJF scheduling
+void SJF_Schedule(struct Process processes[], int n) {
+    int currentTime = 0;
+
+    // Continue scheduling until all processes are completed
+    for (int i = 0; i < n; i++) {
+        // Find the shortest job that has arrived
+        int shortestJobIndex = -1;
+        int shortestBurstTime = INT_MAX; // Use INT_MAX from <limits.h>
+        for (int j = 0; j < n; j++) {
+            if (processes[j].arrivalTime <= currentTime && processes[j].burstTime < shortestBurstTime && processes[j].completionTime == -1) {
+                shortestJobIndex = j;
+                shortestBurstTime = processes[j].burstTime;
+            }
+        }
+
+        // If a suitable process is found, execute it
+        if (shortestJobIndex != -1) {
+            processes[shortestJobIndex].completionTime = currentTime + processes[shortestJobIndex].burstTime;
+            currentTime = processes[shortestJobIndex].completionTime;
+        } else {
+            // If no suitable process is found, move to the next unit of time
+            currentTime++;
+        }
+    }
+}
+
+// Function to display the schedule and average turnaround time
+void displaySchedule(struct Process processes[], int n) {
+    float totalTurnaroundTime = 0.0;
+
+    printf("\nProcess\t Arrival Time\t Burst Time\t Completion Time\t Turnaround Time\n");
+
+    for (int i = 0; i < n; i++) {
+        int turnaroundTime = processes[i].completionTime - processes[i].arrivalTime;
+        totalTurnaroundTime += turnaroundTime;
+
+        printf("%d\t %d\t\t %d\t\t %d\t\t\t %d\n", processes[i].processID, processes[i].arrivalTime,
+               processes[i].burstTime, processes[i].completionTime, turnaroundTime);
+    }
+
+    float averageTurnaroundTime = totalTurnaroundTime / n;
+    printf("\nAverage Turnaround Time: %.2f\n", averageTurnaroundTime);
+}
+
+int main() {
+    int n;
+
+    // Input number of processes
+    printf("Enter the number of processes: ");
+    scanf("%d", &n);
+
+    // Array to store information about each process
+    struct Process processes[n];
+
+    // Input details for each process
+    for (int i = 0; i < n; i++) {
+        processes[i].processID = i + 1;
+        printf("Enter Arrival Time for Process %d: ", processes[i].processID);
+        scanf("%d", &processes[i].arrivalTime);
+        printf("Enter Burst Time for Process %d: ", processes[i].processID);
+        scanf("%d", &processes[i].burstTime);
+        processes[i].completionTime = -1; // Initialize completion time to -1 (not completed)
+    }
+
+    // Perform Non-Preemptive SJF Scheduling
+    SJF_Schedule(processes, n);
+
+    // Display the schedule and average turnaround time
+    displaySchedule(processes, n);
+
+    return 0;
+}
