@@ -1,0 +1,75 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <pthread.h>
+#include <semaphore.h>
+#include <unistd.h>
+#define NUM_READERS 5
+#define NUM_WRITERS 5
+int sharedData = 0;
+int readersCount = 0;
+pthread_mutex_t mutex;
+sem_t readerSemaphore, writerSemaphore;
+void* reader(void* arg) {
+    int id = *((int*)arg);
+    while (1) {
+        sem_wait(&readerSemaphore); 
+        pthread_mutex_lock(&mutex);
+        readersCount++;
+        if (readersCount == 1) {
+            sem_wait(&writerSemaphore); 
+        }
+        pthread_mutex_unlock(&mutex);
+        printf("Reader %d reading: %d\n", id, sharedData);
+        sleep(1);
+        pthread_mutex_lock(&mutex);
+        readersCount--;
+        if (readersCount == 0) {
+            sem_post(&writerSemaphore); 
+        }
+        pthread_mutex_unlock(&mutex);
+
+        sem_post(&readerSemaphore); 
+        sleep(rand() % 3); 
+    }
+    pthread_exit(NULL);
+}
+void* writer(void* arg) {
+    int id = *((int*)arg);
+    while (1) {
+        sem_wait(&writerSemaphore); 
+        sharedData++;
+        printf("Writer %d writing: %d\n", id, sharedData);
+        sleep(1);
+
+        sem_post(&writerSemaphore); 
+        sleep(rand() % 3); 
+    }
+    pthread_exit(NULL);
+}
+int main() {
+    pthread_t readerThreads[NUM_READERS];
+    pthread_t writerThreads[NUM_WRITERS];
+    int readerIDs[NUM_READERS];
+    int writerIDs[NUM_WRITERS];
+    pthread_mutex_init(&mutex, NULL);
+    sem_init(&readerSemaphore, 0, 1);
+    sem_init(&writerSemaphore, 0, 1);
+    for (int i = 0; i < NUM_READERS; ++i) {
+        readerIDs[i] = i + 1;
+        pthread_create(&readerThreads[i], NULL, reader, (void*)&readerIDs[i]);
+    }
+    for (int i = 0; i < NUM_WRITERS; ++i) {
+        writerIDs[i] = i + 1;
+        pthread_create(&writerThreads[i], NULL, writer, (void*)&writerIDs[i]);
+    }
+    for (int i = 0; i < NUM_READERS; ++i) {
+        pthread_join(readerThreads[i], NULL);
+    }
+    for (int i = 0; i < NUM_WRITERS; ++i) {
+        pthread_join(writerThreads[i], NULL);
+    }
+    pthread_mutex_destroy(&mutex);
+    sem_destroy(&readerSemaphore);
+    sem_destroy(&writerSemaphore);
+    return 0;
+}
